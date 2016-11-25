@@ -90,15 +90,18 @@ private:
   bool _sent_gir; //Sentido de giro (anti-horario)
   bool _is_running;
   int _speedPWM; //Largura do pulso do PWM
+  short _defaultSpeedPWM;
 
 public:
-  Hbridge_DCmotor(int pinVCC, int pinMOTIN1, int pinMOTIN2, int pinMOTPWM)
+  Hbridge_DCmotor(int pinVCC, int pinMOTIN1, int pinMOTIN2, int pinMOTPWM, short defaultPWMSpeed=6, int pwmFrequencyScaler=1024)
   {
     setPin(pinVCC, pinMOTIN1, pinMOTIN2, pinMOTPWM);
     _sent_gir = true;
     _speedPWM = 0;
     _is_running = 0;
     stopMotor();
+    setDefaultSpeedPWM(defaultPWMSpeed);
+    setPWMfrequency(pwmFrequencyScaler);
   }
 
   void setPin(int pinVCC, int pinMOTIN1, int pinMOTIN2, int pinMOTPWM)
@@ -122,7 +125,7 @@ public:
     analogWrite(_pinMOT_PWM, _speedPWM*(_is_running? 1 : 0));
   }
 
-  void setPWMfrequency(int pin, int prescaler)
+  void setPWMfrequency(int prescaler)
   {
     //Seta o prescalling do clock para o timer que é definido pelo pino
     byte scaler;
@@ -171,6 +174,17 @@ public:
 //    {
 //      TCCR1B = (TCCR1B & 0b11111000) | scaler;
 //    }
+  }
+
+  void setDefaultSpeedPWM(short newDefaultSpeed)
+  {
+	  _defaultSpeedPWM = newDefaultSpeed;
+  }
+
+  void setSpeedPWM()
+  {
+    _speedPWM = _defaultSpeedPWM;
+    analogWrite(_pinMOT_PWM, _speedPWM*(_is_running? 1 : 0));
   }
 
   void setSpeedPWM(short speedPWM)
@@ -286,7 +300,22 @@ void loop()
   {
     motor.turnOnHBridge();
     motor.setSentidoGiro(true);
-    motor.setSpeedPWM(25);
+    motor.setSpeedPWM();
+    motor.runMotor();
+    usb_com.writeString("OK!");
+  }
+  else if(command == "ligar motorpwm horario")
+  {
+
+    motor.turnOnHBridge();
+    motor.setSentidoGiro(true);
+    if(usb_com.status() > 0)
+    {
+         command = usb_com.getString();
+         motor.setSpeedPWM(command.toInt());
+    }
+    else
+         motor.setSpeedPWM();
     motor.runMotor();
     usb_com.writeString("OK!");
   }
@@ -294,7 +323,21 @@ void loop()
   {
     motor.turnOnHBridge();
     motor.setSentidoGiro(false);
-    motor.setSpeedPWM(25);
+    motor.setSpeedPWM();
+    motor.runMotor();
+    usb_com.writeString("OK!");
+  }
+  else if(command == "ligar motorpwm antihorario")
+  {
+    motor.turnOnHBridge();
+    motor.setSentidoGiro(false);
+    if(usb_com.status() > 0)
+	{
+		 command = usb_com.getString();
+		 motor.setSpeedPWM(command.toInt());
+	}
+	else
+		 motor.setSpeedPWM();
     motor.runMotor();
     usb_com.writeString("OK!");
   }
@@ -303,20 +346,6 @@ void loop()
     motor.stopMotor();
     motor.turnOffHBridge();
     usb_com.writeString("OK!");
-  }
-  else if(command == "debug")
-  {
-    usb_com.writeString("DEBUG");
-    motor.turnOnHBridge();
-    motor.setSentidoGiro(true);
-    motor.setSpeedPWM(25);
-    motor.runMotor();
-    for(;;)
-    {
-      Serial.print(digitalRead(enc_a));
-      Serial.print(" ");
-      Serial.println(digitalRead(enc_b));
-    }
   }
 }
 
