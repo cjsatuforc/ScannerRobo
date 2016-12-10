@@ -262,14 +262,14 @@ void runCommand(DCMotor motor_, SerialCommunication usb, String cmd, int las_a, 
       motor_.runMotor();
       usb.writeString("OK!");
     }
-    else if (cmd== "ligar motor horario fast") {
+    else if (cmd== "ligar motor horario rapido") {
       motor_.turnOnHBridge();
       motor_.setSentidoGiro(false);
       motor_.setSpeedPWM(25);
       motor_.runMotor();
       usb.writeString("OK!");
     }
-    else if (cmd== "ligar motor antihorario fast") {
+    else if (cmd== "ligar motor antihorario rapido") {
       motor_.turnOnHBridge();
       motor_.setSentidoGiro(true);
       motor_.setSpeedPWM(25);
