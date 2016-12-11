@@ -8,6 +8,7 @@
 
 class SerialCommunication
 {
+
 private:
   String str = "";
   char c;
@@ -77,10 +78,8 @@ public:
   }
 };
 
-
-
 //PARA O NANO
-class Hbridge_DCmotor
+class DCMotor
 {
 private:
   //Pinos da ponte H
@@ -93,7 +92,7 @@ private:
   short _defaultSpeedPWM;
 
 public:
-  Hbridge_DCmotor(int pinVCC, int pinMOTIN1, int pinMOTIN2, int pinMOTPWM, short defaultPWMSpeed=6, int pwmFrequencyScaler=1024)
+  DCMotor(int pinVCC, int pinMOTIN1, int pinMOTIN2, int pinMOTPWM, short defaultPWMSpeed=6, int pwmFrequencyScaler=1024)
   {
     setPin(pinVCC, pinMOTIN1, pinMOTIN2, pinMOTPWM);
     _sent_gir = true;
@@ -178,7 +177,7 @@ public:
 
   void setDefaultSpeedPWM(short newDefaultSpeed)
   {
-	  _defaultSpeedPWM = newDefaultSpeed;
+    _defaultSpeedPWM = newDefaultSpeed;
   }
 
   void setSpeedPWM()
@@ -226,19 +225,71 @@ public:
 
 };
 
+void runCommand(DCMotor motor_, SerialCommunication usb, String cmd, int las_a, int las_b)
+{
+    if (cmd=="ligar laser fixo") {
+      digitalWrite(las_b, HIGH);
+      usb.writeString("OK!");
+    }
+    else if (cmd == "ligar laser movel") {
+      digitalWrite(las_a, HIGH);
+      usb.writeString("OK!");
+    }
+    else if (cmd== "desligar laser fixo") {
+      digitalWrite(las_b, LOW);
+      usb.writeString("OK!");
+    }
+    else if (cmd== "desligar laser movel") {
+      digitalWrite(las_a, LOW);
+      usb.writeString("OK!");
+    }
+    else if (cmd== "parar motor") {
+      motor_.stopMotor();
+      motor_.turnOffHBridge();
+      usb.writeString("OK");
+    }
+    else if (cmd== "ligar motor horario") {
+      motor_.turnOnHBridge();
+      motor_.setSentidoGiro(false);
+      motor_.setSpeedPWM();
+      motor_.runMotor();
+      usb.writeString("OK!");
+    }
+    else if ("ligar motor antihorario") {
+      motor_.turnOnHBridge();
+      motor_.setSentidoGiro(true);
+      motor_.setSpeedPWM();
+      motor_.runMotor();
+      usb.writeString("OK!");
+    }
+    else if (cmd== "ligar motor horario rapido") {
+      motor_.turnOnHBridge();
+      motor_.setSentidoGiro(false);
+      motor_.setSpeedPWM(25);
+      motor_.runMotor();
+      usb.writeString("OK!");
+    }
+    else if (cmd== "ligar motor antihorario rapido") {
+      motor_.turnOnHBridge();
+      motor_.setSentidoGiro(true);
+      motor_.setSpeedPWM(25);
+      motor_.runMotor();
+      usb.writeString("OK!");
+    }
+  }
+
 
 //pinos
 //lasers
 int las_a = 4;
 int las_b = 5;
-
 int mot_in1 = 18;
 int mot_in2 = 17;
 int mot_pwm = 10; //SEMPRE USAR O 10 no nano
 int mot_vcc = 19;
 int enc_a = 16;
 int enc_b = 15;
-Hbridge_DCmotor motor(mot_vcc, mot_in1, mot_in2, mot_pwm);
+DCMotor motor(mot_vcc, mot_in1, mot_in2, mot_pwm);
 SerialCommunication usb_com;
 
 void setup()
@@ -276,76 +327,5 @@ void loop()
   usb_com.writeStringwn("Command: ");
   usb_com.writeString(command);
 
-  if(command == "ligar laser movel")
-  {
-    digitalWrite(las_a, HIGH);
-    usb_com.writeString("OK!");
-  }
-  else if(command == "desligar laser movel")
-  {
-    digitalWrite(las_a, LOW);
-    usb_com.writeString("OK!");
-  }
-  else if(command == "ligar laser fixo")
-  {
-    digitalWrite(las_b, HIGH);
-    usb_com.writeString("OK!");
-  }
-  else if(command == "desligar laser fixo")
-  {
-    digitalWrite(las_b, LOW);
-    usb_com.writeString("OK!");
-  }
-  else if(command == "ligar motor horario")
-  {
-    motor.turnOnHBridge();
-    motor.setSentidoGiro(true);
-    motor.setSpeedPWM();
-    motor.runMotor();
-    usb_com.writeString("OK!");
-  }
-  else if(command == "ligar motorpwm horario")
-  {
-
-    motor.turnOnHBridge();
-    motor.setSentidoGiro(true);
-    if(usb_com.status() > 0)
-    {
-         command = usb_com.getString();
-         motor.setSpeedPWM(command.toInt());
-    }
-    else
-         motor.setSpeedPWM();
-    motor.runMotor();
-    usb_com.writeString("OK!");
-  }
-  else if(command == "ligar motor antihorario")
-  {
-    motor.turnOnHBridge();
-    motor.setSentidoGiro(false);
-    motor.setSpeedPWM();
-    motor.runMotor();
-    usb_com.writeString("OK!");
-  }
-  else if(command == "ligar motorpwm antihorario")
-  {
-    motor.turnOnHBridge();
-    motor.setSentidoGiro(false);
-    if(usb_com.status() > 0)
-	{
-		 command = usb_com.getString();
-		 motor.setSpeedPWM(command.toInt());
-	}
-	else
-		 motor.setSpeedPWM();
-    motor.runMotor();
-    usb_com.writeString("OK!");
-  }
-  else if(command == "parar motor")
-  {
-    motor.stopMotor();
-    motor.turnOffHBridge();
-    usb_com.writeString("OK!");
-  }
+  runCommand(motor, usb_com, command, las_a, las_b);
 }
-
